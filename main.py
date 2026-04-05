@@ -1,9 +1,7 @@
 import json
 import os
 
-path_file = "todo_list.json"
-
-def load_tasks():
+def load_tasks(path_file):
     """Load tasks from thee JSON file if exists.
     if the file does not exist or contains invalid JSON, start with an empty list.
     """
@@ -11,18 +9,19 @@ def load_tasks():
         try:
             with open(path_file, "r") as file:
                 return json.load(file)
-        except:
+        except json.JSONDecodeError:
             return []
     return []
 
 tasks = load_tasks()
 
 def save_tasks(tasks):
+    path_file = "todo_list.json"
     """Save all current tasks to the JSON file."""
     with open(path_file, "w") as file:
         json.dump(tasks, file, indent=4)
 
-def add_task():
+def add_task(tasks):
     """Accept task and save to JSON file."""
     task = input("Enter a task: ")
     tasks.append({"task" : task, "done": False})
@@ -32,12 +31,12 @@ def add_task():
 def user_selection(text):
     """Ask to select the task and return selction."""
     try:
-        select_task = int(input(f"Enter a tesk number to {text}: ")) - 1
+        select_task = int(input(f"Enter a task number to {text}: ")) - 1
         return select_task
     except ValueError:
         return -1
 
-def mark_task_complete():
+def mark_task_complete(tasks):
     """Change task status as done and save the update list."""
     index = user_selection("mark as done")
     if 0 <= index < len(tasks):
@@ -47,7 +46,7 @@ def mark_task_complete():
     else:
         print("Invalid task number.")
 
-def delete_task():
+def delete_task(tasks):
     """Remove select task from JSON file and save the update list."""
     index = user_selection("remove")
     if 0 <= index < len(tasks):
@@ -57,8 +56,11 @@ def delete_task():
     else:
         print("Invalid task number.")
 
-def display_tasks():
+def display_tasks(tasks):
     """Print all tasks in numbered list."""
+    if not tasks:
+        print("No tasks yet.")
+        return
     for i, task in enumerate(tasks, start=1):
         status = "Done" if task["done"] else "Not done"
         print(f"{i}. {task['task']} - {status}")
@@ -72,17 +74,18 @@ def print_menu():
 
 def main():
     while True:
-        display_tasks()
+        tasks = load_tasks("todo_list.json")
+        display_tasks(tasks)
         print("______________")
         print_menu()
         index = input(": ")
         match index:
             case "1":
-                add_task()
+                add_task(tasks)
             case "2":
-                mark_task_complete()
+                mark_task_complete(tasks)
             case "3":
-                delete_task()
+                delete_task(tasks)
             case "q"|"quit"|"exit":
                 return False
             case _:
