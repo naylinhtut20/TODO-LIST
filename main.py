@@ -2,30 +2,41 @@ import json
 import os
 
 def load_tasks(path_file):
-    """Load tasks from thee JSON file if exists.
-    if the file does not exist or contains invalid JSON, start with an empty list.
+    """Load tasks from the JSON file.
+    If the file does not exist or contains invalid JSON, return an empty list.
+    Also converts old-format task strings into dictionary format.
     """
     if os.path.exists(path_file):
         try:
             with open(path_file, "r") as file:
-                return json.load(file)
+                data = json.load(file)
+
+                if not isinstance(data, list):
+                    return []
+
+                fixed_tasks = []
+                for item in data:
+                    if isinstance(item, dict) and "task" in item and "done" in item:
+                        fixed_tasks.append(item)
+                    elif isinstance(item, str):
+                        fixed_tasks.append({"task": item, "done": False})
+
+                return fixed_tasks
+
         except json.JSONDecodeError:
             return []
     return []
 
-tasks = load_tasks()
-
-def save_tasks(tasks):
-    path_file = "todo_list.json"
+def save_tasks(tasks, path_file):
     """Save all current tasks to the JSON file."""
     with open(path_file, "w") as file:
         json.dump(tasks, file, indent=4)
 
-def add_task(tasks):
+def add_task(tasks, path_file):
     """Accept task and save to JSON file."""
     task = input("Enter a task: ")
     tasks.append({"task" : task, "done": False})
-    save_tasks(tasks)
+    save_tasks(tasks, path_file)
     print("Task added.")
 
 def user_selection(text):
@@ -36,23 +47,23 @@ def user_selection(text):
     except ValueError:
         return -1
 
-def mark_task_complete(tasks):
+def mark_task_complete(tasks, path_file):
     """Change task status as done and save the update list."""
     index = user_selection("mark as done")
     if 0 <= index < len(tasks):
         tasks[index]["done"] = True
-        save_tasks(tasks)
+        save_tasks(tasks, path_file)
         print("Marked as done.")
     else:
         print("Invalid task number.")
 
-def delete_task(tasks):
+def delete_task(tasks, path_file):
     """Remove select task from JSON file and save the update list."""
     index = user_selection("remove")
     if 0 <= index < len(tasks):
         tasks.pop(index)
         print(f"Task {index + 1} was removed.")
-        save_tasks(tasks)
+        save_tasks(tasks, path_file)
     else:
         print("Invalid task number.")
 
@@ -61,9 +72,13 @@ def display_tasks(tasks):
     if not tasks:
         print("No tasks yet.")
         return
+
     for i, task in enumerate(tasks, start=1):
-        status = "Done" if task["done"] else "Not done"
-        print(f"{i}. {task['task']} - {status}")
+        if isinstance(task, dict):
+            status = "Done" if task.get("done", False) else "Not done"
+            print(f"{i}. {task.get('task', 'Unknown task')} - {status}")
+        else:
+            print(f"{i}. {task} - Not done")
 
 def print_menu():
     """Display the main MENU"""
@@ -73,19 +88,22 @@ def print_menu():
     print("q. Quit.")
 
 def main():
+    path_file = "todo_list.json"
     while True:
-        tasks = load_tasks("todo_list.json")
+        tasks = load_tasks(path_file)
         display_tasks(tasks)
+
         print("______________")
         print_menu()
-        index = input(": ")
-        match index:
+        choice = input(": ")
+
+        match choice:
             case "1":
-                add_task(tasks)
+                add_task(tasks, path_file)
             case "2":
-                mark_task_complete(tasks)
+                mark_task_complete(tasks, path_file)
             case "3":
-                delete_task(tasks)
+                delete_task(tasks, path_file)
             case "q"|"quit"|"exit":
                 return False
             case _:
